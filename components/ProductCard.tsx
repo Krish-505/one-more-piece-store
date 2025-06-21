@@ -1,43 +1,51 @@
 // in components/ProductCard.tsx
+import type { Product } from '@/types'; // Import our shared type
 
-// We are NOT importing 'next/image' anymore.
-
+// --- THE FIX IS HERE ---
+// We update the props definition to accept a 'product' object and a 'disabled' boolean.
 type ProductCardProps = {
-  name: string;
-  price: number;
-  imageUrl: string;
+  product: Product;
+  disabled: boolean;
 };
 
-export default function ProductCard({ name, price, imageUrl }: ProductCardProps) {
+export default function ProductCard({ product, disabled }: ProductCardProps) {
+  // We can now destructure the properties from the product object
+  const { name, price, image_url } = product;
+
   return (
-    <div className="border-2 border-dark-charcoal p-4 flex flex-col gap-4 rounded-md shadow-lg bg-white/20">
+    // The conditional class makes the whole card look faded if disabled
+    <div className={`border-2 border-dark-charcoal p-4 flex flex-col gap-4 rounded-md shadow-lg bg-white/20 transition-opacity ${disabled ? 'opacity-60' : ''}`}>
       
-      {/* This div still provides the square shape for the image */}
-      <div className="w-full aspect-square overflow-hidden rounded-md">
+      <div className="w-full aspect-square overflow-hidden rounded-md relative">
+        {/* The 'relative' class is for the "Sold Out" overlay */}
         
-        {/* --- THE FIX IS HERE --- */}
-        {/* We are using a standard HTML <img> tag instead of next/image's <Image> */}
-        {/* This bypasses the Next.js image optimization and the hostname error. */}
         <img 
-          src={imageUrl} 
+          src={image_url || '/placeholder.svg'} 
           alt={name}
-          // These classes make it behave like our old Image component
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" 
-          // We add a loading attribute for better performance
+          className="w-full h-full object-cover" 
           loading="lazy"
         />
-        {/* --- END OF FIX --- */}
 
+        {/* This overlay will only show if the item is disabled (sold) */}
+        {disabled && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+            <span className="text-white text-2xl font-heading rotate-[-15deg] border-2 border-white px-4 py-2">SOLD</span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
         <h3 className="font-body font-bold text-lg truncate">{name}</h3>
         <p className="text-xl font-body text-vibrant-magenta font-semibold">₹{price}</p>
-        <button className="bg-vibrant-magenta text-white font-body font-bold py-2 px-4 rounded-md hover:bg-deep-red transition-colors w-full mt-2">
-          View Details
+        
+        {/* The button is disabled and its text changes if the product is sold */}
+        <button 
+          className="w-full bg-vibrant-magenta text-white py-2 rounded-md font-bold transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+          disabled={disabled}
+        >
+          {disabled ? 'Sold Out' : 'View Details'}
         </button>
       </div>
-      
     </div>
   );
 }
