@@ -1,73 +1,48 @@
 // in components/ProductTable.tsx
-"use client"; // This must be a client component to handle user interactions
+"use client";
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+// --- THIS IS THE FIX ---
+// Import the server actions, NOT fetch
+import { deleteProduct, updateProductStatus } from '@/app/actions';
 
-// Define the shape of the product data we expect for this table
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-  category: string;
-  status: string;
-};
+type Product = { id: number; name: string; price: number; category: string; status: string; };
 
-// The component accepts the initial list of products fetched from the server
 export default function ProductTable({ initialProducts }: { initialProducts: Product[] }) {
   const [products, setProducts] = useState(initialProducts);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleDelete = async (productId: number) => {
-    // Ask for confirmation before performing a destructive action
-    if (!window.confirm("Are you sure you want to delete this product? This cannot be undone.")) {
-      return;
-    }
-
-    // Call Supabase to delete the row matching the ID
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .match({ id: productId });
-
-    if (error) {
-      alert(`Error deleting product: ${error.message}`);
-    } else {
-      // If successful, update the local state to remove the product from the UI instantly
+    if (!window.confirm("Are you sure?")) return;
+    
+    // Call the SERVER ACTION
+    const result = await deleteProduct(productId);
+    
+    if (result.success) {
       setProducts(products.filter(p => p.id !== productId));
-      alert("Product deleted successfully.");
+      alert(result.message);
+    } else {
+      alert(`Error: ${result.message}`);
+    }
+  };
+
+  const handleStatusChange = async (productId: number, currentStatus: string) => {
+    const newStatus = currentStatus === 'Available' ? 'Sold' : 'Available';
+    const oldProducts = [...products];
+    setProducts(products.map(p => p.id === productId ? { ...p, status: newStatus } : p));
+    
+    // Call the SERVER ACTION
+    const result = await updateProductStatus(productId, newStatus);
+    
+    if (!result.success) {
+      setProducts(oldProducts);
+      alert(`Error: ${result.message}`);
     }
   };
 
   const handleEdit = (productId: number) => {
-    // Navigate to the dynamic edit page for the specific product
     router.push(`/dashboard/edit-product/${productId}`);
-  };
-
-  const handleStatusChange = async (productId: number, currentStatus: string) => {
-    // Toggle the status
-    const newStatus = currentStatus === 'Available' ? 'Sold' : 'Available';
-
-    // Optimistic UI Update: Change the status in the UI immediately
-    setProducts(products.map(p => 
-      p.id === productId ? { ...p, status: newStatus } : p
-    ));
-
-    // Send the update to the database in the background
-    const { error } = await supabase
-      .from('products')
-      .update({ status: newStatus })
-      .eq('id', productId);
-
-    if (error) {
-      // If the database update fails, alert the user and revert the UI change
-      alert(`Error updating status: ${error.message}`);
-      setProducts(products.map(p => 
-        p.id === productId ? { ...p, status: currentStatus } : p // Revert to the old status
-      ));
-    }
   };
 
   return (

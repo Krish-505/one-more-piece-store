@@ -7,6 +7,6 @@ export type Product = {
   price: number;
   category: string;
   size: string | null;
-  image_url: string | null;
-  status: string;
+  image_url: string[]| null;
+  status: string; 
 };

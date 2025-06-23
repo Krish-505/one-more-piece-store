@@ -42,13 +42,7 @@ export default async function HomePage() {
 
   return (
     <main className="container mx-auto p-4 md:p-8">
-      <header className="flex flex-col items-center text-center gap-4 mb-12">
-        <img src="/logo.png" alt="One More Piece Logo" width={150} height={150} />
-        <p className="max-w-md font-body">
-          Handpicked Thrift & Surplus clothing. Unique pieces, one at a time.
-        </p>
-      </header>
-
+     
       {/* --- Section 1: Available Products --- */}
       <section>
         <h2 className="text-2xl text-center mb-8">LATEST DROP</h2>
