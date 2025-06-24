@@ -76,3 +76,41 @@ export async function editProduct(productId: number, formData: FormData) {
   revalidatePath(`/product/${productId}`);
   return { success: true, message: "Product updated." };
 }
+import { type CartItem } from '@/lib/CartContext'; // Import the CartItem type
+
+export async function placeOrder(formData: FormData, cartItems: CartItem[], totalPrice: number) {
+  const supabase = await createSupabaseServerClient(); // Using our helper from before
+
+  const customerData = {
+    customer_name: formData.get('customer_name') as string,
+    customer_email: formData.get('customer_email') as string,
+    shipping_address: formData.get('shipping_address') as string,
+    customer_phone: formData.get('customer_phone') as string,
+  };
+
+  // Create a simplified version of the cart items to store in the 'jsonb' column
+  const productsForDb = cartItems.map(item => ({
+    id: item.product.id,
+    name: item.product.name,
+    price: item.product.price,
+    quantity: item.quantity,
+  }));
+
+  // Insert the new order into the 'orders' table
+  const { error } = await supabase
+    .from('orders')
+    .insert([{ 
+      ...customerData, 
+      order_total: totalPrice,
+      ordered_products: productsForDb
+    }]);
+
+  if (error) {
+    // IMPORTANT: Because we haven't set RLS policies for 'orders' yet, this will fail.
+    // That's our next step!
+    return { success: false, message: `Database error: ${error.message}` };
+  }
+
+  // We don't need to revalidate paths for orders as they aren't public
+  return { success: true };
+}
