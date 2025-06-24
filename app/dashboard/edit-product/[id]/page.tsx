@@ -1,4 +1,3 @@
-// in app/dashboard/edit-product/[id]/page.tsx
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -6,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Product } from '@/types';
 import { editProduct } from '@/app/actions';
 import { createClient } from '@/lib/supabaseClient';
+import { CATEGORIES } from '@/types'; // <-- Import the categories list
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Partial<Product>>({});
@@ -39,13 +39,18 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     }
     setIsSubmitting(false);
   };
+
+  // This function handles changes for ALL form inputs, including our new select
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setProduct({ ...product, [e.target.name]: e.target.value });
+  };
   
-  if (loading) return <div className="p-8 text-center">Loading product data...</div>;
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
     <div className="max-w-xl mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Edit Product</h1>
-      <form ref={formRef} action={handleFormAction} className="space-y-4 bg-white/20 p-6 rounded-lg shadow-md">
+      <form ref={formRef} action={handleFormAction} className="space-y-4 bg-white/20 p-6 ...">
         <div>
           <label className="block text-sm font-bold mb-1">Current Image(s)</label>
           {Array.isArray(product.image_url) && product.image_url.length > 0 ? (
@@ -79,7 +84,19 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
         <div>
           <label htmlFor="category" className="block text-sm font-bold mb-1">Category</label>
-          <input type="text" id="category" name="category" defaultValue={product.category || ''} required className="w-full p-2 border border-gray-400 rounded-md text-dark-charcoal" />
+          <select 
+            id="category" 
+            name="category" // Use the 'name' attribute for the server action
+            value={product.category || ''} // Read value from the 'product' state object
+            onChange={handleChange} // Use the unified handleChange function
+            required 
+            className="w-full p-2 border border-gray-400 rounded-md text-dark-charcoal"
+          >
+            <option value="" disabled>Select a category</option>
+            {CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
 
         <div>

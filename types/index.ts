@@ -10,3 +10,10 @@ export type Product = {
   image_url: string[]| null;
   status: string; 
 };
+export const CATEGORIES = [
+  "Shirt",
+  "T-Shirt",
+  "Pant",
+  "Accessories",
+  "Other",
+];

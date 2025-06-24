@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { CATEGORIES } from '@/types';
 
 export default function AddProductPage() {
   const [name, setName] = useState('');
@@ -95,9 +96,22 @@ export default function AddProductPage() {
           <input type="number" id="price" value={price} onChange={(e) => setPrice(e.target.value)} required className="w-full p-2 border border-gray-400 rounded-md text-dark-charcoal" />
         </div>
         <div>
-          <label htmlFor="category" className="block text-sm font-bold mb-1">Category</label>
-          <input type="text" id="category" value={category} onChange={(e) => setCategory(e.target.value)} required className="w-full p-2 border border-gray-400 rounded-md text-dark-charcoal" />
-        </div>
+  <label htmlFor="category" className="block text-sm font-bold mb-1">Category</label>
+  {/* Replace the input with this select dropdown */}
+  <select 
+    id="category" 
+    name="category" 
+    value={category} 
+    onChange={(e) => setCategory(e.target.value)} 
+    required 
+    className="w-full p-2 border border-gray-400 rounded-md text-dark-charcoal"
+  >
+    <option value="" disabled>Select a category</option>
+    {CATEGORIES.map(cat => (
+      <option key={cat} value={cat}>{cat}</option>
+    ))}
+  </select>
+</div>
         <div>
           <label htmlFor="size" className="block text-sm font-bold mb-1">Size</label>
           <input type="text" id="size" value={size} onChange={(e) => setSize(e.target.value)} className="w-full p-2 border border-gray-400 rounded-md text-dark-charcoal" />
