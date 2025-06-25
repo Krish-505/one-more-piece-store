@@ -10,10 +10,28 @@ export type Product = {
   image_url: string[]| null;
   status: string; 
 };
+export type Profile = {
+  id: string; // Corresponds to the user's auth ID (uuid)
+  full_name: string | null;
+  phone: string | null;
+  address_line: string | null;
+  district: string | null;
+  pincode: string | null;
+  alt_phone: string | null;
+};
 export const CATEGORIES = [
-  "Shirt",
-  "T-Shirt",
-  "Pant",
+  "Shirts",
+  "Tees",
+  "Bottoms",
+  "Jackets",
   "Accessories",
-  "Other",
 ];
+// in types/index.ts
+export type Order = {
+  id: number;
+  created_at: string;
+  customer_name: string;
+  order_total: number;
+  ordered_products: [{ id: number; name: string; price: number; quantity: number }];
+  // ... add other order fields if needed
+};

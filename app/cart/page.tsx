@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image"; // We'll use Next/Image for the small thumbnails
 
 export default function CartPage() {
-  const { cartItems, updateQuantity, removeFromCart, itemCount, totalPrice } = useCart();
+  const { cartItems, removeFromCart, itemCount, totalPrice } = useCart();
 
   return (
     <div className="container mx-auto max-w-4xl p-4 md:p-8">
@@ -26,43 +26,26 @@ export default function CartPage() {
           
           {/* Left Side: Cart Items */}
           <div className="md:col-span-2 space-y-4">
-            {cartItems.map(item => (
-              <div key={item.product.id} className="flex items-center gap-4 bg-white/30 p-4 rounded-lg shadow-md">
-                
-                {/* Product Image */}
-                <div className="w-24 h-24 flex-shrink-0">
-                  <img 
+                {cartItems.map(item => (
+                  <div key={item.product.id} className="flex items-center gap-4 bg-white/30 p-4 rounded-lg shadow-md">
+                    <div className="w-24 h-24 flex-shrink-0">
+                      <img 
                     src={Array.isArray(item.product.image_url) ? item.product.image_url[0] : '/placeholder.svg'}
                     alt={item.product.name}
                     className="w-full h-full object-cover rounded-md"
                   />
-                </div>
-                
-                {/* Product Details & Actions */}
-                <div className="flex-grow">
-                  <h2 className="font-bold text-lg">{item.product.name}</h2>
-                  <p className="text-vibrant-magenta font-semibold">₹{item.product.price}</p>
-                  
-                  {/* Quantity Controls */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-8 h-8 bg-gray-300 rounded font-bold">-</button>
-                    <input 
-                      type="number" 
-                      value={item.quantity} 
-                      readOnly 
-                      className="w-12 text-center bg-transparent font-bold"
-                    />
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-8 h-8 bg-gray-300 rounded font-bold">+</button>
+                    </div>
+                    <div className="flex-grow">
+                      <h2 className="font-bold text-lg">{item.product.name}</h2>
+                      <p className="text-vibrant-magenta font-semibold">₹{item.product.price}</p>
+                      {/* Quantity controls are now REMOVED */}
+                    </div>
+                    <button onClick={() => removeFromCart(item.product.id)} className="font-bold text-red-500 hover:text-red-700 text-2xl">
+                      ×
+                    </button>
                   </div>
-                </div>
-
-                {/* Remove Button */}
-                <button onClick={() => removeFromCart(item.product.id)} className="font-bold text-red-500 hover:text-red-700 text-2xl">
-                  ×
-                </button>
+                ))}
               </div>
-            ))}
-          </div>
 
           {/* Right Side: Order Summary */}
           <div className="md:col-span-1">

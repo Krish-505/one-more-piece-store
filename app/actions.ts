@@ -3,21 +3,30 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
+import { type CartItem } from '@/lib/CartContext';
+
+// --- PRODUCT MANAGEMENT ACTIONS ---
 
 export async function deleteProduct(productId: number) {
- 
-   const supabase = await createSupabaseServerClient(); 
+  const supabase = await createSupabaseServerClient();
   
   const { data: product } = await supabase.from('products').select('image_url').eq('id', productId).single();
   if (product?.image_url && Array.isArray(product.image_url)) {
     const fileNames = product.image_url.map(url => url.split('/').pop()).filter(Boolean) as string[];
-    if (fileNames.length > 0) await supabase.storage.from('product-images').remove(fileNames);
+    if (fileNames.length > 0) {
+      await supabase.storage.from('product-images').remove(fileNames);
+    }
   }
+  
   const { error } = await supabase.from('products').delete().match({ id: productId });
-  if (error) return { success: false, message: error.message };
-  revalidatePath('/');
+  if (error) {
+    return { success: false, message: `DB delete failed: ${error.message}` };
+  }
+  
   revalidatePath('/dashboard');
-  return { success: true, message: "Product deleted." };
+  revalidatePath('/');
+  return { success: true, message: "Product deleted successfully." };
 }
 
 export async function updateProductStatus(productId: number, newStatus: string) {
@@ -33,7 +42,7 @@ export async function updateProductStatus(productId: number, newStatus: string) 
 }
 
 export async function editProduct(productId: number, formData: FormData) {
-  const supabase = await createSupabaseServerClient(); 
+  const supabase = await createSupabaseServerClient();
 
   const newImageFiles = formData.getAll('newImages') as File[];
   let updatedImageUrls: string[] | null = null;
@@ -76,41 +85,122 @@ export async function editProduct(productId: number, formData: FormData) {
   revalidatePath(`/product/${productId}`);
   return { success: true, message: "Product updated." };
 }
-import { type CartItem } from '@/lib/CartContext'; // Import the CartItem type
+
+
+// --- AUTHENTICATION ACTIONS ---
+
+export async function signup(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+  const fullName = formData.get('fullName') as string;
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName } },
+  });
+
+  if (error) {
+    redirect('/signup?message=Could not authenticate user');
+  }
+  redirect('/signup?message=Check email to continue sign in process');
+}
+
+export async function login(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    redirect('/login?message=Could not authenticate user');
+  }
+  redirect('/');
+}
+
+export async function logout() {
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect('/login');
+}
+
+
+// --- PROFILE & ORDER ACTIONS ---
+
+export async function updateProfile(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, message: "You must be logged in." };
+
+  const profileData = {
+    full_name: formData.get('full_name') as string,
+    phone: formData.get('phone') as string,
+    address_line: formData.get('address_line') as string,
+    district: formData.get('district') as string,
+    pincode: formData.get('pincode') as string,
+    alt_phone: formData.get('alt_phone') as string,
+  };
+
+  const { error } = await supabase.from('profiles').update(profileData).eq('id', user.id);
+  if (error) return { success: false, message: `Error updating profile: ${error.message}` };
+
+  revalidatePath('/profile');
+  return { success: true, message: "Profile updated successfully!" };
+}
 
 export async function placeOrder(formData: FormData, cartItems: CartItem[], totalPrice: number) {
-  const supabase = await createSupabaseServerClient(); // Using our helper from before
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const customerData = {
     customer_name: formData.get('customer_name') as string,
     customer_email: formData.get('customer_email') as string,
-    shipping_address: formData.get('shipping_address') as string,
     customer_phone: formData.get('customer_phone') as string,
+    address_line: formData.get('address_line') as string,
+    district: formData.get('district') as string,
+    pincode: formData.get('pincode') as string,
+    alt_phone: formData.get('alt_phone') as string,
   };
 
-  // Create a simplified version of the cart items to store in the 'jsonb' column
   const productsForDb = cartItems.map(item => ({
     id: item.product.id,
     name: item.product.name,
     price: item.product.price,
-    quantity: item.quantity,
+    quantity: 1,
   }));
 
-  // Insert the new order into the 'orders' table
-  const { error } = await supabase
-    .from('orders')
-    .insert([{ 
-      ...customerData, 
-      order_total: totalPrice,
-      ordered_products: productsForDb
-    }]);
+  const orderToInsert = {
+    ...customerData,
+    order_total: totalPrice,
+    ordered_products: productsForDb,
+    user_id: user ? user.id : null, // Save user_id if logged in, otherwise null
+  };
 
-  if (error) {
-    // IMPORTANT: Because we haven't set RLS policies for 'orders' yet, this will fail.
-    // That's our next step!
-    return { success: false, message: `Database error: ${error.message}` };
+  const { error: orderError } = await supabase.from('orders').insert([orderToInsert]);
+  if (orderError) {
+    return { success: false, message: `Could not save order: ${orderError.message}` };
   }
 
-  // We don't need to revalidate paths for orders as they aren't public
+  if (user) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: customerData.customer_name,
+        phone: customerData.customer_phone,
+        address_line: customerData.address_line,
+        district: customerData.district,
+        pincode: customerData.pincode,
+        alt_phone: customerData.alt_phone,
+      })
+      .eq('id', user.id);
+
+    if (profileError) {
+      console.error("Non-critical error: Could not update user profile:", profileError.message);
+    }
+  }
+  
   return { success: true };
 }
