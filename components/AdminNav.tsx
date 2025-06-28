@@ -27,6 +27,9 @@ export default function AdminNav() {
           Add New Product
         </Link>
       </div>
+      <Link href="/dashboard/orders" className="hover:text-vibrant-magenta font-bold">
+  Orders
+</Link>
 
       {/* Right side sign out button */}
       <div>

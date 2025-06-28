@@ -11,7 +11,7 @@ export type Product = {
   status: string; 
 };
 export type Profile = {
-  id: string; // Corresponds to the user's auth ID (uuid)
+  id: string; // This is a uuid
   full_name: string | null;
   phone: string | null;
   address_line: string | null;
@@ -26,12 +26,28 @@ export const CATEGORIES = [
   "Jackets",
   "Accessories",
 ];
-// in types/index.ts
+
+export type OrderedProduct = {
+  id: number;
+  name: string;
+  price: number;
+  image_url: string | null; // This is a single string (the primary image)
+};
+
 export type Order = {
   id: number;
   created_at: string;
   customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  address_line: string;
+  district: string;
+  pincode: string;
+  alt_phone: string | null;
   order_total: number;
-  ordered_products: [{ id: number; name: string; price: number; quantity: number }];
-  // ... add other order fields if needed
+  ordered_products: OrderedProduct[]; // This is an array of the type above
+  user_id: string | null;
+};
+export type CartItem = {
+  product: Product;
 };

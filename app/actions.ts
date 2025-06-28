@@ -166,11 +166,12 @@ export async function placeOrder(formData: FormData, cartItems: CartItem[], tota
   };
 
   const productsForDb = cartItems.map(item => ({
-    id: item.product.id,
-    name: item.product.name,
-    price: item.product.price,
-    quantity: 1,
-  }));
+        id: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        image_url: Array.isArray(item.product.image_url) ? item.product.image_url[0] : null
+       
+      }));
 
   const orderToInsert = {
     ...customerData,
@@ -178,10 +179,17 @@ export async function placeOrder(formData: FormData, cartItems: CartItem[], tota
     ordered_products: productsForDb,
     user_id: user ? user.id : null, // Save user_id if logged in, otherwise null
   };
-
-  const { error: orderError } = await supabase.from('orders').insert([orderToInsert]);
-  if (orderError) {
-    return { success: false, message: `Could not save order: ${orderError.message}` };
+  
+   const { error } = await supabase
+    .from('orders')
+    .insert([{ 
+      ...customerData,
+      order_total: totalPrice,
+      ordered_products: productsForDb, // This now contains image URLs
+      user_id: user ? user.id : null 
+    }]);
+   if (error) {
+    return { success: false, message: `Database error: ${error.message}` };
   }
 
   if (user) {
@@ -203,4 +211,36 @@ export async function placeOrder(formData: FormData, cartItems: CartItem[], tota
   }
   
   return { success: true };
+}
+
+
+export async function updateUserProfile(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "User not authenticated." };
+  }
+
+  const profileData = {
+    full_name: formData.get('full_name') as string,
+    phone: formData.get('phone') as string,
+    address_line: formData.get('address_line') as string,
+    district: formData.get('district') as string,
+    pincode: formData.get('pincode') as string,
+    alt_phone: formData.get('alt_phone') as string,
+  };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update(profileData)
+    .eq('id', user.id);
+
+  if (error) {
+    return { success: false, message: `Error updating profile: ${error.message}` };
+  }
+
+  // Revalidate the profile page to show the new data
+  revalidatePath('/profile');
+  return { success: true, message: "Profile updated successfully!" };
 }

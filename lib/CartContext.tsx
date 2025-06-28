@@ -1,14 +1,9 @@
 // in lib/CartContext.tsx
 "use client";
-
 import { createContext, useState, useContext, ReactNode } from 'react';
 import type { Product } from '@/types';
 
-// CartItem no longer needs a quantity property
-export type CartItem = {
-  product: Product;
-};
-
+export type CartItem = { product: Product; };
 type CartContextType = {
   cartItems: CartItem[];
   addToCart: (product: Product) => void;
@@ -18,7 +13,6 @@ type CartContextType = {
   totalPrice: number;
   isInCart: (productId: number) => boolean;
 };
-
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
@@ -42,24 +36,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCartItems(prevItems => prevItems.filter(item => item.product.id !== productId));
   };
 
-  const clearCart = () => {
-    setCartItems([]);
-  };
+  const clearCart = () => { setCartItems([]); };
 
-  const isInCart = (productId: number) => {
-    return cartItems.some(item => item.product.id === productId);
-  };
-
-  const itemCount = cartItems.length; // Simpler calculation
-  const totalPrice = cartItems.reduce((total, item) => total + item.product.price, 0); // Simpler calculation
-
+  const isInCart = (productId: number) => cartItems.some(item => item.product.id === productId);
+  const itemCount = cartItems.length;
+  const totalPrice = cartItems.reduce((total, item) => total + item.product.price, 0);
   return (
     <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart, itemCount, totalPrice, isInCart }}>
       {children}
     </CartContext.Provider>
   );
 };
-
 export const useCart = () => {
   const context = useContext(CartContext);
   if (context === undefined) {

@@ -31,8 +31,9 @@ async function getProduct(id: string): Promise<Product | null> {
 }
 
 // The main page component
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id);
+export default async function ProductDetailPage({ params: { id } }: { params: { id: string } }) {
+  // Now we can use 'id' directly without the warning.
+  const product = await getProduct(id);
 
   if (!product || !product.image_url || product.image_url.length === 0) {
     notFound();

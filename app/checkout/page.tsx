@@ -1,29 +1,39 @@
 // in app/checkout/page.tsx
-import { createSupabaseServerClient } from "@/utils/supabase/server";
-import CheckoutForm from "@/components/CheckoutForm"; 
-import type { Profile } from "@/types";
-import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
+import CheckoutForm from '@/components/CheckoutForm';
+import type { Product, Profile } from '@/types';
 
-export default async function CheckoutPage() {
-  // Create an authenticated server client
+export default async function CheckoutPage({ 
+  searchParams: { buyNow, productId } 
+}: { 
+  searchParams: { buyNow?: string; productId?: string; } 
+}) {
   const supabase = await createSupabaseServerClient();
-  
-  // Get the current logged-in user, if any
   const { data: { user } } = await supabase.auth.getUser();
-  
-  let profile: Profile | null = null;
-  
-  // If a user is logged in, try to fetch their profile data
+
+  let profile: (Profile & { email?: string }) | null = null;
   if (user) {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    profile = profileData;
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    profile = data ? { ...data, email: user.email } : null;
+  }
+  
+   const isBuyNowMode = buyNow === 'true';
+  let buyNowProduct: Product | null = null;
+
+  if (isBuyNowMode && productId) {
+    const { data } = await supabase.from('products').select('*').eq('id', productId).single();
+    if (!data) return redirect('/');
+    buyNowProduct = data;
   }
 
-  // Pass the user's profile (or null if they're not logged in) down to the form component
-  // We also pass the user object itself so the form knows if someone is logged in
-  return <CheckoutForm profile={profile} user={user} />;
+  return (
+    <div className="container mx-auto max-w-2xl p-4 md:p-8">
+      <h1 className="text-3xl font-heading mb-8 text-center">Checkout</h1>
+      <CheckoutForm 
+        initialProfile={profile} 
+        buyNowProduct={buyNowProduct}
+      />
+    </div>
+  );
 }
