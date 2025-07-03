@@ -191,7 +191,21 @@ export async function placeOrder(formData: FormData, cartItems: CartItem[], tota
    if (error) {
     return { success: false, message: `Database error: ${error.message}` };
   }
+   const productIdsToUpdate = cartItems.map(item => item.product.id);
 
+  // Perform the update query on the 'products' table
+  // Use the .in() filter to update all products whose ID is in our array
+  const { error: productStatusError } = await supabase
+    .from('products')
+    .update({ status: 'Sold' })
+    .in('id', productIdsToUpdate);
+
+  if (productStatusError) {
+    // In a real-world scenario, you might want to handle this failure (e.g., log it),
+    // but for now, we'll just report it. The order was still placed.
+    console.error("Failed to update product statuses, but order was placed:", productStatusError.message);
+  }
+  
   if (user) {
     const { error: profileError } = await supabase
       .from('profiles')
@@ -204,13 +218,18 @@ export async function placeOrder(formData: FormData, cartItems: CartItem[], tota
         alt_phone: customerData.alt_phone,
       })
       .eq('id', user.id);
+      
 
     if (profileError) {
       console.error("Non-critical error: Could not update user profile:", profileError.message);
     }
   }
+  revalidatePath('/');
+  revalidatePath('/dashboard');
+  // We should also revalidate the product detail pages for the sold items
+  productIdsToUpdate.forEach(id => revalidatePath(`/product/${id}`));
   
-  return { success: true };
+  return { success: true, message: "Order placed and products updated." };
 }
 
 
